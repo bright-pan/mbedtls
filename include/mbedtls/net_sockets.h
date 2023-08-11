@@ -45,6 +45,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <sys/socket.h>
 
 /** Failed to open a socket. */
 #define MBEDTLS_ERR_NET_SOCKET_FAILED                     -0x0042
@@ -169,6 +170,23 @@ int mbedtls_net_bind(mbedtls_net_context *ctx, const char *bind_ip, const char *
 int mbedtls_net_accept(mbedtls_net_context *bind_ctx,
                        mbedtls_net_context *client_ctx,
                        void *client_ip, size_t buf_size, size_t *ip_len);
+/**
+ * \brief           Accept a connection from a remote client
+ *
+ * \param bind_ctx  Relevant socket
+ * \param client_ctx Will contain the connected client socket
+ * \param caddr client address info
+ *
+ * \return          0 if successful, or
+ *                  MBEDTLS_ERR_NET_SOCKET_FAILED,
+ *                  MBEDTLS_ERR_NET_BIND_FAILED,
+ *                  MBEDTLS_ERR_NET_ACCEPT_FAILED, or
+ *                  MBEDTLS_ERR_SSL_WANT_READ if bind_fd was set to
+ *                  non-blocking and accept() would block.
+ */
+int mbedtls_net_accept_ex(mbedtls_net_context *bind_ctx,
+                       mbedtls_net_context *client_ctx,
+                       struct sockaddr_in *sin);
 
 /**
  * \brief          Check and wait for the context to be ready for read/write
@@ -281,6 +299,66 @@ int mbedtls_net_send(void *ctx, const unsigned char *buf, size_t len);
  */
 int mbedtls_net_recv_timeout(void *ctx, unsigned char *buf, size_t len,
                              uint32_t timeout);
+
+/**
+ * \brief          Read at most 'len' characters. If no error occurs,
+ *                 the actual amount read is returned.
+ *
+ * \param ctx      Socket
+ * \param addr     Recv from address
+ * \param buf      The buffer to write to
+ * \param len      Maximum length of the buffer
+ *
+ * \return         the number of bytes received,
+ *                 or a non-zero error code; with a non-blocking socket,
+ *                 MBEDTLS_ERR_SSL_WANT_READ indicates read() would block.
+ */
+int mbedtls_net_recvfrom(void *ctx, void *addr, unsigned char *buf, size_t len);
+
+/**
+ * \brief          Write at most 'len' characters. If no error occurs,
+ *                 the actual amount read is returned.
+ *
+ * \param ctx      Socket
+ * \param addr     Send to address
+ * \param buf      The buffer to read from
+ * \param len      The length of the buffer
+ *
+ * \return         the number of bytes sent,
+ *                 or a non-zero error code; with a non-blocking socket,
+ *                 MBEDTLS_ERR_SSL_WANT_WRITE indicates write() would block.
+ */
+int mbedtls_net_sendto(void *ctx, void *addr, const unsigned char *buf, size_t len);
+
+/**
+ * \brief          Read at most 'len' characters, blocking for at most
+ *                 'timeout' seconds. If no error occurs, the actual amount
+ *                 read is returned.
+ *
+ * \note           The current implementation of this function uses
+ *                 select() and returns an error if the file descriptor
+ *                 is \c FD_SETSIZE or greater.
+ *
+ * \param ctx      Socket
+ * \param addr     Recv from address
+ * \param buf      The buffer to write to
+ * \param len      Maximum length of the buffer
+ * \param timeout  Maximum number of milliseconds to wait for data
+ *                 0 means no timeout (wait forever)
+ *
+ * \return         The number of bytes received if successful.
+ *                 MBEDTLS_ERR_SSL_TIMEOUT if the operation timed out.
+ *                 MBEDTLS_ERR_SSL_WANT_READ if interrupted by a signal.
+ *                 Another negative error code (MBEDTLS_ERR_NET_xxx)
+ *                 for other failures.
+ *
+ * \note           This function will block (until data becomes available or
+ *                 timeout is reached) even if the socket is set to
+ *                 non-blocking. Handling timeouts with non-blocking reads
+ *                 requires a different strategy.
+ */
+int mbedtls_net_recvfrom_timeout(void *ctx, void *addr, unsigned char *buf, size_t len,
+                                 uint32_t timeout);
 
 /**
  * \brief          Closes down the connection and free associated data

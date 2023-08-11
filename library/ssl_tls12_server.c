@@ -30,6 +30,7 @@
 #include "mbedtls/platform_util.h"
 #include "constant_time_internal.h"
 #include "mbedtls/constant_time.h"
+#include "ssl_debug_helpers.h"
 #include "hash_info.h"
 
 #include <string.h>
@@ -4225,7 +4226,8 @@ int mbedtls_ssl_handshake_server_step(mbedtls_ssl_context *ssl)
 {
     int ret = 0;
 
-    MBEDTLS_SSL_DEBUG_MSG(2, ("server state: %d", ssl->state));
+    MBEDTLS_SSL_DEBUG_MSG(2, ("server state: %s",
+                              mbedtls_ssl_states_str(ssl->state)));
 
     switch (ssl->state) {
         case MBEDTLS_SSL_HELLO_REQUEST:
@@ -4326,7 +4328,8 @@ int mbedtls_ssl_handshake_server_step(mbedtls_ssl_context *ssl)
             break;
 
         default:
-            MBEDTLS_SSL_DEBUG_MSG(1, ("invalid state %d", ssl->state));
+            MBEDTLS_SSL_DEBUG_MSG(1, ("invalid state: %s",
+                                      mbedtls_ssl_states_str(ssl->state)));
             return MBEDTLS_ERR_SSL_BAD_INPUT_DATA;
     }
 
